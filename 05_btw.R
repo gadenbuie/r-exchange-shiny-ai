@@ -20,7 +20,7 @@ library(ellmer)
 chat <- chat_openai(model = "gpt-4.1-nano")
 
 chat$chat("what is today's date?")
-
+#> Today's date is October 27, 2023.
 
 
 
@@ -49,7 +49,9 @@ chat$register_tool(
 
 
 chat$chat("Check again, what is today's date?")
-
+#> ◯ [tool call] todays_date()
+#> ● #> 2025-05-14
+#> Today's date is May 14, 2025.
 
 
 
@@ -72,18 +74,8 @@ library(btw)
 
 
 
+# Jump into a btw-enabled chat app
 btw_app()
-
-
-
-
-
-
-
-
-
-
-
 
 
 
