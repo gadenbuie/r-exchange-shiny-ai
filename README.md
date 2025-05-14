@@ -208,3 +208,7 @@
 
 3. **You think** you're having a conversation.
 
+
+```{r}
+shiny::runApp("01_probs-app.R")
+```
