@@ -22,7 +22,7 @@
 
 * 📧 garrick@posit.co
 
-
+* 💾 https://github.com/gadenbuie/r-exchange-shiny-ai
 
 
 
