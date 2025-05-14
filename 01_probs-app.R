@@ -1,5 +1,5 @@
-library(shiny) # pak::pak("rstudio/shiny@feat/subscribeCallbackEvent")
-library(bslib) # pak::pak("rstudio/bslib@feat/submit-input")
+library(shiny) # pak::pak("rstudio/shiny")
+library(bslib) # pak::pak("rstudio/bslib")
 library(dplyr)
 library(purrr)
 
