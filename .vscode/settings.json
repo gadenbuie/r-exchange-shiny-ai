@@ -13,5 +13,7 @@
     "querychat",
     "shinychat",
     "usethis"
-  ]
+  ],
+  "gitlens.currentLine.enabled": false,
+  "gitlens.currentLine.pullRequests.enabled": false
 }
