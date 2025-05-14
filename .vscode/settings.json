@@ -1,0 +1,17 @@
+{
+  "editor.trimAutoWhitespace": false,
+  "[r]": {
+    "editor.formatOnSave": false
+  },
+  "editor.wordWrap": "off",
+  "editor.lineHeight": 1.33,
+  "editor.lineNumbers": "off",
+  "editor.renderLineHighlight": "line",
+  "cSpell.words": [
+    "ellmer",
+    "ollama",
+    "querychat",
+    "shinychat",
+    "usethis"
+  ]
+}
