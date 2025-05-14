@@ -10,6 +10,8 @@ chat <- chat_openai()
 chat$chat("Pick a random word.")
 
 # Same for Anthropic
+chat <- chat_anthropic()
+chat$chat("Pick a random word.")
 
 
 
@@ -88,7 +90,10 @@ chat$chat("Pick a random word.")
 #
 # ollama pull qwen3:4b
 
-# chat <- chat_
+# See locally available models
+models_ollama()
+
+chat <- chat_ollama(model = "qwen3:4b")
 
 
 
