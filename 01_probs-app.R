@@ -51,7 +51,7 @@ add_noWS_to_tags <- function(x) {
     }
   }
 
-  # Recursively process all children/elements using lapply
+  # Recursively process all children/elements
   x[] <- lapply(x, add_noWS_to_tags)
 
   return(x)
@@ -77,7 +77,7 @@ token_tooltip_component <- function(tokens_data) {
         ))
       }
 
-      # Create table rows for all alternatives
+      # Create a table row for each alternative
       table_rows <-
         alternatives |>
         pmap(function(token, logprob, chosen, ...) {
@@ -94,7 +94,7 @@ token_tooltip_component <- function(tokens_data) {
           )
         })
 
-      # Create the alternatives table
+      # Create the alternatives table container
       alt_table <- tags$table(
         class = "table table-sm token-table",
         `data-bs-theme` = "dark",
@@ -107,23 +107,24 @@ token_tooltip_component <- function(tokens_data) {
         tags$tbody(table_rows)
       )
 
-      # Create token span
+      # Tokens are wrapped in spans with a confidence rating class
       token_span <- span(
         class = paste0("token confidence-", tolower(chosen_confidence)),
         HTML(chosen_token)
       )
 
-      # Create and return popover
+      # And then tokens get a tooltip that shows the alternatives table
       tooltip(
         token_span,
         alt_table,
         options = list(
+          # Click to show the tooltip, also means it stays visible until
+          # dismissed with a second click. Useful for comparing between tokens.
           trigger = "click"
         )
       )
     })
 
-  # Add some basic styling for different confidence levels
   style_tag <- tags$style(HTML(
     "
     .token-tooltip-container {
