@@ -3,30 +3,16 @@ library(bslib) # pak::pak("rstudio/bslib")
 library(dplyr)
 library(purrr)
 
-chat <- ellmer::chat_openai(
-  model = "gpt-4.1-nano",
-  params = ellmer::params(log_probs = TRUE, top_logprobs = 5)
-)
-openai <- chat$get_provider()
-
-get_completion_log_probs <- function(input) {
-  req <- ellmer:::chat_request(
-    openai,
-    stream = FALSE,
-    list(
-      ellmer::Turn(
-        "system",
-        "You are a concise and helpful sentence finisher."
-      ),
-      ellmer::Turn("user", input)
-    )
+chat_with_completion_log_probs <- function(input) {
+  chat <- ellmer::chat_openai(
+    model = "gpt-4.1-nano",
+    system_prompt = "You are a concise and helpful sentence finisher.",
+    params = ellmer::params(log_probs = TRUE, top_logprobs = 5)
   )
 
-  res <- httr2::resp_body_json(
-    httr2::req_perform(req)
-  )
+  chat$chat(input, echo = "none")
 
-  res$choices[[1]]$logprobs$content |>
+  chat$last_turn()@json$choices[[1]]$logprobs$content |>
     purrr::map_dfr(
       function(x) {
         res <- purrr::map_dfr(x$top_logprobs, \(x) x[c("token", "logprob")])
@@ -203,13 +189,13 @@ token_tooltip_component <- function(tokens_data) {
   )
 }
 
-ui <- page_sidebar(
+ui <- page_navbar(
   title = "Token Possibilities",
   sidebar = sidebar(
     width = "33%",
     textAreaInput(
       "prompt",
-      "Prompt",
+      tagList(icon("pencil"), "Prompt"),
       value = "Write a funny limerick about a cat.",
       rows = 4,
       autoresize = TRUE,
@@ -219,57 +205,73 @@ ui <- page_sidebar(
       "Submit",
       icon = icon("paper-plane"),
       class = "btn-primary"
-    ),
-    accordion(
-      open = FALSE,
-      accordion_panel(
-        "Ideas",
-        icon = bsicons::bs_icon("lightbulb"),
-        markdown(
-          r"(
-    Here are some short, presentation-friendly phrases that illustrate how LLMs select words based on context and probability:
-
-    ## High Ambiguity Examples
-
-    - "The bank..." (financial institution or riverside?)
-    - "She saw a bat..." (animal or sports equipment?)
-    - "I need to get a prescription for my..." (many medical possibilities)
-    - "Please pass the..." (countless objects could follow)
-    - "The doctor examined the patient's..." (multiple body parts possible)
-
-    ## Context Shifts Probability
-
-    - "I'm going to the bank to..." (now likely financial)
-    - "I'm going to the bank to fish..." (now likely riverside)
-    - "The pitcher threw the bat..." (sports context established)
-    - "The cave was full of sleeping bat..." (animal context established)
-    - "Time flies like an..." (arrow? airplane? hour?)
-    - "Time flies like an arrow; fruit flies like a..." (banana becomes highly probable)
-
-    ## Probability Steered by Specificity
-
-    - "The capital of France is..." (very high certainty for "Paris")
-    - "The chemical symbol for gold is..." (very high certainty for "Au")
-    - "To be or not to be, that is the..." (extremely high certainty for "question")
-    - "I woke up this morning feeling..." (many plausible completions)
-    - "In a world where..." (extremely open-ended)
-
-    ## Contextual Collocations
-
-    - "Strong..." (coffee? winds? opinions? person?)
-    - "Strong tea and..." (likely food-related completions)
-    - "The heavy..." (weight? rain? traffic? burden?)
-    - "She couldn't bear the heavy..." (psychological interpretation more likely)
-
-    These examples demonstrate how LLMs navigate between certainty and ambiguity based on available context.
-        )"
-        )
-      )
     )
   ),
-  uiOutput("completion"),
-  useBusyIndicators(),
-  tags$head(
+  header = useBusyIndicators(),
+  id = "tab",
+  nav_panel(
+    "Response",
+    value = "response",
+    icon = icon("robot", class = "me-1"),
+    uiOutput("completion"),
+  ),
+  nav_panel(
+    "Ideas",
+    value = "ideas",
+    icon = icon("lightbulb", class = "me-1"),
+    shinychat::output_markdown_stream(
+      id = "ideas-markdown",
+      content = r"(
+Here are some short, presentation-friendly phrases that illustrate how LLMs select words based on context and probability.
+
+As a first step, try replacing `cat` with `animal`.
+
+```markdown
+Write a funny limerick about a cat.
+```
+```markdown
+Write a funny limerick about an animal.
+```
+
+How does that change the LLM's response?
+
+## High Ambiguity Examples
+
+- "The bank..." (financial institution or riverside?)
+- "She saw a bat..." (animal or sports equipment?)
+- "I need to get a prescription for my..." (many medical possibilities)
+- "Please pass the..." (countless objects could follow)
+- "The doctor examined the patient's..." (multiple body parts possible)
+
+## Context Shifts Probability
+
+- "I'm going to the bank to..." (now likely financial)
+- "I'm going to the bank to fish..." (now likely riverside)
+- "The pitcher threw the bat..." (sports context established)
+- "The cave was full of sleeping bat..." (animal context established)
+- "Time flies like an..." (arrow? airplane? hour?)
+- "Time flies like an arrow; fruit flies like a..." (banana becomes highly probable)
+
+## Probability Steered by Specificity
+
+- "The capital of France is..." (very high certainty for "Paris")
+- "The chemical symbol for gold is..." (very high certainty for "Au")
+- "To be or not to be, that is the..." (extremely high certainty for "question")
+- "I woke up this morning feeling..." (many plausible completions)
+- "In a world where..." (extremely open-ended)
+
+## Contextual Collocations
+
+- "Strong..." (coffee? winds? opinions? person?)
+- "Strong tea and..." (likely food-related completions)
+- "The heavy..." (weight? rain? traffic? burden?)
+- "She couldn't bear the heavy..." (psychological interpretation more likely)
+
+These examples demonstrate how LLMs navigate between certainty and ambiguity based on available context.
+    )"
+    )
+  ),
+  footer = tags$head(
     tags$script(
       HTML(
         r"(
@@ -296,14 +298,17 @@ function revealSequentially(selector, options = {}) {
   )
 )
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   completion <- eventReactive(input$submit, {
-    get_completion_log_probs(input$prompt)
+    updateTabsetPanel(session, "tab", selected = "response")
+    chat_with_completion_log_probs(input$prompt)
   })
 
   output$completion <- renderUI({
     token_tooltip_component(completion())
   })
+
+  outputOptions(output, "completion", suspendWhenHidden = FALSE)
 }
 
 shinyApp(ui, server)
