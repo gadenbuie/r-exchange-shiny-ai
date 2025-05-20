@@ -3,11 +3,22 @@ library(bslib) # pak::pak("rstudio/bslib")
 library(dplyr)
 library(purrr)
 
-chat_with_completion_log_probs <- function(input) {
+`%||%` <- function(x, y) if (is.null(x)) y else x
+
+chat_with_completion_log_probs <- function(
+  input,
+  system_prompt = NULL,
+  temperature = 0.5
+) {
   chat <- ellmer::chat_openai(
     model = "gpt-4.1-nano",
-    system_prompt = "You are a concise and helpful sentence finisher.",
-    params = ellmer::params(log_probs = TRUE, top_logprobs = 5)
+    system_prompt = system_prompt %||%
+      "You are a concise and helpful sentence finisher.",
+    params = ellmer::params(
+      log_probs = TRUE,
+      top_logprobs = 5,
+      temperature = temperature
+    ),
   )
 
   chat$chat(input, echo = "none")
@@ -57,7 +68,7 @@ add_noWS_to_tags <- function(x) {
   return(x)
 }
 
-token_tooltip_component <- function(tokens_data) {
+token_tooltip_component <- function(tokens_data, delay = NULL) {
   id <- paste0("prompt-", rlang::hash(tokens_data))
 
   token_elements <-
@@ -174,8 +185,9 @@ token_tooltip_component <- function(tokens_data) {
 
   reveal_sequentially <- tags$script(
     HTML(sprintf(
-      "revealSequentially('#%s .token');",
-      id
+      "revealSequentially('#%s .token', {%s});",
+      id,
+      if (is.null(options)) "" else sprintf("delay: %d", delay)
     ))
   )
 
@@ -194,6 +206,7 @@ ui <- page_navbar(
   title = "Token Possibilities",
   sidebar = sidebar(
     width = "33%",
+    style = css(height = "100%"),
     textAreaInput(
       "prompt",
       tagList(icon("pencil"), "Prompt"),
@@ -206,10 +219,47 @@ ui <- page_navbar(
       "Submit",
       icon = icon("paper-plane"),
       class = "btn-primary"
+    ),
+    accordion(
+      open = FALSE,
+      style = css(margin_top = "auto"),
+      accordion_panel(
+        "Settings",
+        icon = bsicons::bs_icon("sliders"),
+        class = "bg-light",
+        textAreaInput(
+          "system_prompt",
+          tagList(bsicons::bs_icon("robot"), "System prompt"),
+          value = "You are a concise and helpful sentence finisher.",
+          rows = 4,
+          autoresize = TRUE
+        ),
+        sliderInput(
+          "temperature",
+          tagList(bsicons::bs_icon("brightness-alt-high-fill"), "Creativity"),
+          min = 0,
+          max = 1,
+          value = 0.5,
+          step = 0.1,
+          ticks = FALSE
+        ),
+        radioButtons(
+          "speed",
+          tagList(bsicons::bs_icon("speedometer2"), "Model speed"),
+          inline = TRUE,
+          selected = 100,
+          choices = c(
+            "🐢 Slow" = 750,
+            "🚗 Fast" = 100,
+            "⚡ Instant" = 20
+          ),
+        )
+      )
     )
   ),
   header = useBusyIndicators(),
   id = "tab",
+  nav_spacer(),
   nav_panel(
     "Response",
     value = "response",
@@ -302,11 +352,15 @@ function revealSequentially(selector, options = {}) {
 server <- function(input, output, session) {
   completion <- eventReactive(input$submit, {
     updateTabsetPanel(session, "tab", selected = "response")
-    chat_with_completion_log_probs(input$prompt)
+    chat_with_completion_log_probs(
+      input$prompt,
+      system_prompt = input$system_prompt,
+      temperature = input$temperature
+    )
   })
 
   output$completion <- renderUI({
-    token_tooltip_component(completion())
+    token_tooltip_component(completion(), delay = as.integer(input$speed))
   })
 
   outputOptions(output, "completion", suspendWhenHidden = FALSE)
