@@ -43,7 +43,7 @@ chat_with_completion_log_probs <- function(
         logprob < -2 ~ "low",
         logprob < -1 ~ "medium",
         logprob < -0.1 ~ "high",
-        .default = "certain"
+        .default = "very-high"
       )
     )
 }
@@ -153,26 +153,34 @@ token_tooltip_component <- function(tokens_data, delay = NULL) {
       cursor: pointer;
       white-space: pre;
       border: 1px solid var(--bs-body-bg);
+      color: var(--fg, #000);
+      background-color: var(--bg, #fff);
+      border-bottom: 2px solid var(--border-accent, var(--bs-body-bg));
     }
-    .confidence-certain {
-      background-color: rgba(76, 175, 80, 0.2);
-      border-bottom: 2px solid #4CAF50; /* Green */
+    .confidence-very-high {
+      --bg: #dee8ff;
+      --fg: #011b55;
+      --border-accent: #5b8efd;
     }
     .confidence-high {
-      background-color: rgba(0, 150, 136, 0.2);
-      border-bottom: 2px solid #009688; /* Teal */
+      --bg: #e3dffc;
+      --fg: #12074b;
+      --border-accent: #725def;
     }
     .confidence-medium {
-      background-color: rgba(255, 193, 7, 0.2);
-      border-bottom: 2px solid #FFC107; /* Amber */
+      --bg: #f8d3e5;
+      --fg: #37081f;
+      --border-accent: #dd217d;
     }
     .confidence-low {
-      background-color: rgba(255, 152, 0, 0.2);
-      border-bottom: 2px solid #FF9800; /* Orange */
+      --bg: #ffdfcc;
+      --fg: #401700;
+      --border-accent: #ff5f00;
     }
     .confidence-very-low {
-      background-color: rgba(244, 67, 54, 0.2);
-      border-bottom: 2px solid #F44336; /* Red */
+      --bg: #ffefcf;
+      --fg: #442d00;
+      --border-accent: #ffb00d;
     }
     .bs-popover-auto {
       max-width: 300px;
